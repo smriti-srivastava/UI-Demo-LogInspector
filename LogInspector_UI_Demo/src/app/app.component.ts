@@ -36,14 +36,19 @@ export class AppComponent {
   ngOnInit() {
     const request = {
       //"CorrelationId" : "6a4a8ea3-0e45-4c2a-820f-4bc09e01167b"
-      //"CorrelationId" : "b32affa9-a3a8-4d0e-b941-3e5f2c5330bb"
-      "CorrelationId" : "13-09-2018_01_rq"
+      "CorrelationId" : "b32affa9-a3a8-4d0e-b941-3e5f2c5330bb"
+      //"CorrelationId" : "13-09-2018_01_rq"
+      /* error -->*/    //"CorrelationId" : "8dab237f-ca1a-4adc-9c5f-228b0f2d3345" 
+      //"CorrelationId" : "600b6456-aaf8-4a17-95a1-dafcd242f138"
+      
+      
     };
     this.GetLogs(request).subscribe(
      async (data:any) => {
         this.logs = data.logs;
         console.log(this.logs);
         await this.SortLogs();
+        console.log(this.sortedLogs);
         await this.GetDataPoints(this.logs);
         this.RenderGraph(this.dataPoints);
       }
@@ -79,7 +84,7 @@ export class AppComponent {
             let x = currentX + 3;
             let y1 = this.GetY1(start_time, log.fields.log_time)
             let y = [y1, y1 + (log.fields.time_taken_ms!=0? log.fields.time_taken_ms:0.01)];
-            this.dataPoints.push({x, y, color: altApiColor ?"LightSeaGreen": "#008080", label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time })
+            this.dataPoints.push({x, y, color: altApiColor ?"#4CAC90": "#008080", label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time })
           }
           else
           {
@@ -89,7 +94,7 @@ export class AppComponent {
               let x = currentX + 2;
               let y1 = this.GetY1(start_time, log.fields.log_time)
               let y = [y1, y1+50];
-              this.dataPoints.push({x, y, color: altTraceColor ?"#7F3E71": "#AB497A", label:log.appName, appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
+              this.dataPoints.push({x, y, color: altTraceColor ?"#DF874D": "#C9D45C", label:log.appName, appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
             }
             else
             {
@@ -99,7 +104,7 @@ export class AppComponent {
                 let x = currentX + 1;
                 let y1 = this.GetY1(start_time, log.fields.log_time)
                 let y = [y1, y1+50];
-                this.dataPoints.push({x, y, color: altExceptionColor ?"#bf4c41": "#660000",label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
+                this.dataPoints.push({x, y, color: altExceptionColor ?"#DF7970": "#FF4540",label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
                
               }
               else
@@ -136,7 +141,7 @@ export class AppComponent {
     let stripLines = [];
     for(let i=1; i<=this.sortedLogs.length; i++)
     {
-        stripLines.push({ value: i*4, color:"black", thickness:2});
+        stripLines.push({ value: i*4, color:"dimgrey", thickness:2});
     }
     return stripLines;
   }
@@ -147,8 +152,8 @@ export class AppComponent {
   RenderGraph(dataPoints){
     let chart = new CanvasJS.Chart("chartContainer",
     {
-      backgroundColor: "#F5DEB3",
-      theme:"",
+      //backgroundColor: "#F5DEB3",
+      theme:"dark2",
       title: {
         text: "Logs"
       },
@@ -164,8 +169,13 @@ export class AppComponent {
         //interval: 5000,
         scaleBreaks: {
           autoCalculate: true,
-          collapsibleThreshold: "0.1%"
-        }
+          lineThickness: 0,
+          //color: "#F9FDFC",
+          collapsibleThreshold: "0%",
+          
+          type:"zigzag"
+        },
+        gridColor: "#414142",
         
       },
       axisX: {
@@ -173,10 +183,7 @@ export class AppComponent {
         stripLines: this.GetStripLines(), 
         interval:1,
         labelFontSize: 15,
-        scaleBreaks: {
-          autoCalculate: true,
-          collapsibleThreshold: "0.1%"
-        }
+        gridColor: "#414142"
       },
       data: [
       {
