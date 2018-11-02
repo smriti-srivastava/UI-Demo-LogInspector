@@ -21,7 +21,6 @@ class Log {
 })
 export class AppComponent {
   title = 'rangeBarGraphDemoApp';
-  
   correlationId:string;
   startDate:Date;
   endDate:Date;
@@ -29,14 +28,17 @@ export class AppComponent {
   logs:Log[];
   sortedLogs:any[];
   startTime:number;
+  stripLinesNumber:number[];
   constructor(private http: HttpClient){
     this.sortedLogs = [];
+    this.stripLinesNumber = [];
   }
 
   ngOnInit() {
     const request = {
       //"CorrelationId" : "6a4a8ea3-0e45-4c2a-820f-4bc09e01167b"
-      "CorrelationId" : "b32affa9-a3a8-4d0e-b941-3e5f2c5330bb"
+      //"CorrelationId" : "b32affa9-a3a8-4d0e-b941-3e5f2c5330bb"
+      "CorrelationId" : "dbc7d1db-99ae-49b7-87fb-e2db7cb4600c"
       //"CorrelationId" : "13-09-2018_01_rq"
       /* error -->*/    //"CorrelationId" : "8dab237f-ca1a-4adc-9c5f-228b0f2d3345" 
       //"CorrelationId" : "600b6456-aaf8-4a17-95a1-dafcd242f138"
@@ -46,10 +48,9 @@ export class AppComponent {
     this.GetLogs(request).subscribe(
      async (data:any) => {
         this.logs = data.logs;
-        console.log(this.logs);
         await this.SortLogs();
-        console.log(this.sortedLogs);
         await this.GetDataPoints(this.logs);
+        console.log(this.dataPoints);
         this.RenderGraph(this.dataPoints);
       }
     );
@@ -69,56 +70,57 @@ export class AppComponent {
 
     GetDataPoints(logs) {
     let currentX = 0;
-    let start_time = logs[0].fields.log_time;
+    let start_time = logs[logs.length-1].fields.log_time;
+    let stripLineNumberIndex = 0;
+    this.stripLinesNumber.push(0); 
     this.sortedLogs.forEach(LogsArray => {
       let currentApiY=0;
       let altApiColor = true;
       let altTraceColor = true;
-      let altExceptionColor = true; 
+      let altExceptionColor = true;
+     
+      //let currentEndTime = this.GetY1(start_time, LogsArray[0].log_time) + LogsArray[0].fields.time_taken_ms;
       LogsArray.forEach(log => {
-
           
           if(log.logType == "api")
           {
             altApiColor = !altApiColor;
-            let x = currentX + 3;
-            let y1 = this.GetY1(start_time, log.fields.log_time)
-            let y = [y1, y1 + (log.fields.time_taken_ms!=0? log.fields.time_taken_ms:0.01)];
-            this.dataPoints.push({x, y, color: altApiColor ?"#4CAC90": "#008080", label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time })
+            currentX++;
+            let y1 = this.GetY1(start_time, log.fields.log_time);
+            let y = [y1, y1 + (log.fields.hasOwnProperty('time_taken_ms')?log.fields.time_taken_ms: log.fields.hasOwnProperty('timeTakenMs')? log.fields.timeTakenMs: 1)];
+            this.dataPoints.push({x:currentX, y, color: altApiColor ?"#4CAC90": "#008080", label:" ", appName: log.appName, logId: log.logId, logType: log.logType,api:log.fields.api, verb:log.fields.verb,time_taken_ms: log.fields.time_taken_ms })
           }
-          else
-          {
-            altTraceColor = !altTraceColor;
-            if(log.logType == "trace")
-            {
-              let x = currentX + 2;
-              let y1 = this.GetY1(start_time, log.fields.log_time)
-              let y = [y1, y1+50];
-              this.dataPoints.push({x, y, color: altTraceColor ?"#DF874D": "#C9D45C", label:log.appName, appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
-            }
-            else
-            {
-              altExceptionColor=!altExceptionColor;
-              if(log.logType == "exception")
-              {
-                let x = currentX + 1;
-                let y1 = this.GetY1(start_time, log.fields.log_time)
-                let y = [y1, y1+50];
-                this.dataPoints.push({x, y, color: altExceptionColor ?"#DF7970": "#FF4540",label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
+          // else
+          // {
+          //   altTraceColor = !altTraceColor;
+          //   if(log.logType == "trace")
+          //   {
+          //     let x = currentX + 2;
+          //     let y1 = this.GetY1(start_time, log.fields.log_time)
+          //     let y = [y1, y1+50];
+          //     this.dataPoints.push({x, color: altTraceColor ?"#DF874D": "#C9D45C", label:log.appName, appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
+          //   }
+          //   else
+          //   {
+          //     altExceptionColor=!altExceptionColor;
+          //     if(log.logType == "exception")
+          //     {
+          //       let x = currentX + 1;
+          //       let y1 = this.GetY1(start_time, log.fields.log_time)
+          //       let y = [y1, y1+50];
+          //       this.dataPoints.push({x, color: altExceptionColor ?"#DF7970": "#FF4540",label:" ", appName: log.appName, logId: log.logId, logType: log.logType, logTime: log.fields.log_time });
                
-              }
-              else
-              {
-               
-              }
-            }
-          }
+          //     }
+          //   }
+          //}
       });
+      currentX++;
+      this.stripLinesNumber.push(currentX);
+      stripLineNumberIndex++;
+      let appNameX = currentX - parseInt(((this.stripLinesNumber[stripLineNumberIndex] - this.stripLinesNumber[stripLineNumberIndex-1])/2).toString());
+      this.dataPoints.push({x: appNameX, label:LogsArray[0].appName});
+      console.log(appNameX, this.stripLinesNumber, stripLineNumberIndex, LogsArray[0].appName);
       this.dataPoints.push({x: currentX, label:" "});
-      this.dataPoints.push({x:currentX + 1 , label:" "});
-      this.dataPoints.push({x:currentX + 2 , label:LogsArray[0].appName});
-      this.dataPoints.push({x:currentX + 3 , label:" "});
-      currentX += 4;
     });
   }
 
@@ -131,7 +133,6 @@ export class AppComponent {
     let start_hours = start_time.substring(11,13);
     let log_hours = log_time.substring(11,13);
     let diff = (parseFloat(log_hours) - parseFloat(start_hours))*3600+(parseFloat(log_timeMin) - parseFloat(start_timeMin))*60 + parseFloat(log_Seconds) - parseFloat(start_timeSeconds);
-    console.log("--->", log_hours, start_hours, start_time, log_time, start_timeMin, log_timeMin, start_timeSeconds, log_Seconds, diff);
     return diff*1000;
   }
 
@@ -139,9 +140,9 @@ export class AppComponent {
   GetStripLines()
   {
     let stripLines = [];
-    for(let i=1; i<=this.sortedLogs.length; i++)
+    for(let i=0; i<this.sortedLogs.length; i++)
     {
-        stripLines.push({ value: i*4, color:"dimgrey", thickness:2});
+        stripLines.push({ value: this.stripLinesNumber[i], color:"dimgrey", thickness:2});
     }
     return stripLines;
   }
@@ -190,9 +191,9 @@ export class AppComponent {
         type: "rangeBar",
         yValueFormatString: "#0.## °C",
         markerBorderThickness: 1,
-        toolTipContent: "AppName:{appName}<br>LogId:{logId}<br>Type:{logType}<br>LogTime:{logTime}",  
+        toolTipContent: "AppName:{appName}<br>LogId:{logId}<br>Type:{logType}<br>Verb:{verb}<br>API:{api}<br>TimeTaken: {time_taken_ms}",  
         dataPoints: dataPoints
-        //[
+      //[
       //     {x:4, label:" "},
       //     {x:3, y:[0,1.4], color: "LightSeaGreen", markerBorderColor: "black", label:" "},
       //     {x:3, y:[1.8,3.1], color: "#008080", markerBorderColor: "#000000", label:" "},
